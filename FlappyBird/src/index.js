@@ -1,6 +1,7 @@
-import * as PIXI from 'pixi.js'
+import * as PIXI from 'pixi.js';
 import SOUND from "pixi-sound";
 import utils from './utils';
+import Bird from './bird';
 
 // pixi dev tools doesn't work without this
 window.PIXI = PIXI;
@@ -65,10 +66,15 @@ PIXI.Loader.shared
             scoreDigit.x = appWidth / 2;
         });
 
-        const bird = new PIXI.Sprite(resources.midFlapBird.texture);
-        mainContainer.addChild(bird);
+        const bird = new Bird({ 
+            upFlapBird: resources.upFlapBird, 
+            midFlapBird: resources.midFlapBird, 
+            downFlapBird: resources.downFlapBird
+        });
 
-        bird.position.set(20, appHeight / 2);
+        mainContainer.addChild(bird.getSprite());
+
+        bird.setPosition(20, appHeight / 2);
 
         let initialPipeXCoordinate = 200;
         const pipes = [];
@@ -111,14 +117,13 @@ PIXI.Loader.shared
         let passedPipesCount = 0;
 
         app.ticker.add(() => {
-            const birdHasFellDown = bird.y >= (appHeight - 100);
+            const birdHasFellDown = bird.yPosition() >= (appHeight - 100);
 
             // sprite anchor is (0,0) by default
             const overlappingPipe = pipes.find((pipe) => 
-                (((bird.x + bird.width) >= pipe.x) && (bird.x <= (pipe.x + pipe.width))) && 
-                    !pipe.passed && 
-                        ((pipe.scale.y === 1 && (bird.y + bird.height) >= pipe.y) || 
-                            (pipe.scale.y === -1 && (bird.y <= pipe.y))));
+                (((bird.xPosition() + bird.getWidth()) >= pipe.x) && (bird.xPosition() <= (pipe.x + pipe.width))) && 
+                    ((pipe.scale.y === 1 && (bird.yPosition() + bird.getHeight()) >= pipe.y) || 
+                        (pipe.scale.y === -1 && (bird.yPosition() <= pipe.y))));
             
                 if (overlappingPipe || birdHasFellDown) {
                     alert('game over');
@@ -142,7 +147,6 @@ PIXI.Loader.shared
 
                     pipes.push(newBottomPipe);
                     pipes.push(newUpperPipe);
-                    newBottomPipe.passed = false;
 
                     PIXI.sound.play('pointSound');
 
@@ -172,14 +176,14 @@ PIXI.Loader.shared
                 }
             });
 
-            bird.texture = resources['midFlapBird'].texture;
+            bird.setTexture('midFlapBird');
 
             if (fallingDown) {
-                bird.y += 3;
-                bird.texture = resources['downFlapBird'].texture;
+                bird.incrementYPosition(3);
+                bird.setTexture('downFlapBird');
             } else {
-                bird.y -= 5;
-                bird.texture = resources['upFlapBird'].texture;
+                bird.decrementYPosition(5);
+                bird.setTexture('upFlapBird');
             }
         });
     });
