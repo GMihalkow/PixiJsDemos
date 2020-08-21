@@ -13,7 +13,6 @@
     "@pixi/sprite": "5.2.4",
     "@pixi/ticker": "5.2.4",
     "babel-loader": "^8.1.0",
-    "copy-webpack-plugin": "^6.0.3",
     "html-webpack-plugin": "^4.3.0",
     "pixi.js": "5.2.4",
     "uglifyjs-webpack-plugin": "^2.2.0",
