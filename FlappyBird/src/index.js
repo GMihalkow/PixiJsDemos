@@ -1,7 +1,8 @@
 import * as PIXI from 'pixi.js';
 import SOUND from "pixi-sound";
-import utils from './utils';
 import Bird from './bird';
+import Score from './score';
+import utils from './utils';
 
 // pixi dev tools doesn't work without this
 window.PIXI = PIXI;
@@ -10,7 +11,7 @@ window.PIXI = PIXI;
 PIXI["s" + "o" + "u" + "n" + "d"] = SOUND;
 
 const appHeight = 512;
-const appWidth = 512 * 3;
+const appWidth = window.innerWidth;
 
 const app = new PIXI.Application({
     width: appWidth,
@@ -24,25 +25,12 @@ app.renderer.view.style.display = 'block';
 app.renderer.view.style.margin = '5rem auto';
 
 PIXI.Loader.shared
-    .add('0', '/assets/sprites/0.png')
-    .add('1', '/assets/sprites/1.png')
-    .add('2', '/assets/sprites/2.png')
-    .add('3', '/assets/sprites/3.png')
-    .add('4', '/assets/sprites/4.png')
-    .add('5', '/assets/sprites/5.png')
-    .add('6', '/assets/sprites/6.png')
-    .add('7', '/assets/sprites/7.png')
-    .add('8', '/assets/sprites/8.png')
-    .add('9', '/assets/sprites/9.png')
     .add('bg', '/assets/sprites/background-night.png')
-    .add('midFlapBird', '/assets/sprites/bluebird-midflap.png')
-    .add('upFlapBird', '/assets/sprites/bluebird-upflap.png')
-    .add('downFlapBird', '/assets/sprites/bluebird-downFlap.png')
     .add('greenPipe', '/assets/sprites/pipe-green.png')
     .add('floor', '/assets/sprites/base.png')
+    .add('startMessage', '/assets/sprites/message.png')
+    .add('gameOverSign', '/assets/sprites/gameover.png')
     .add('pointSound', '/assets/audio/point.wav')
-    .add('wingSound', '/assets/audio/wing.wav')
-    .add('swooshSound', '/assets/audio/swoosh.wav')
     .load((loader, resources) => {
         const mainContainer = new PIXI.Container();
         app.stage.addChild(mainContainer);
@@ -57,20 +45,7 @@ PIXI.Loader.shared
         floor.y = appHeight - 100;
         floorContainer.addChild(floor);
 
-        let score = [new PIXI.Sprite(resources['0'].texture)];
-
-        score.forEach((scoreDigit) => {
-            mainContainer.addChild(scoreDigit);
-            
-            scoreDigit.y = appHeight / 2 - 150;
-            scoreDigit.x = appWidth / 2;
-        });
-
-        const bird = new Bird({ 
-            upFlapBird: resources.upFlapBird, 
-            midFlapBird: resources.midFlapBird, 
-            downFlapBird: resources.downFlapBird
-        });
+        const bird = new Bird();
 
         mainContainer.addChild(bird.getSprite());
 
@@ -83,113 +58,122 @@ PIXI.Loader.shared
         for (let index = 0; index < pipesCount; index++) {
             const bottomPipe = new PIXI.Sprite(resources.greenPipe.texture);
             mainContainer.addChild(bottomPipe);
-            
+
             const pipeStartYCoordinate = utils.getRandomInt(appHeight - bottomPipe.height, 350);
             bottomPipe.position.set(initialPipeXCoordinate, pipeStartYCoordinate);
-            
+
             const upperPipe = new PIXI.Sprite(resources.greenPipe.texture);
             mainContainer.addChild(upperPipe);
             upperPipe.scale.y = -1;
             upperPipe.position.set(initialPipeXCoordinate, pipeStartYCoordinate - 150);
 
             initialPipeXCoordinate += 200;
-            
+
             pipes.push(bottomPipe);
             pipes.push(upperPipe);
         }
+    
+        const score = new Score(appWidth / 2, appHeight / 2 - 150);
+        app.stage.addChild(score.getContainer());
         
         let fallingDown = true;
-        
-        window.addEventListener('keydown', function(e) {
-            if (fallingDown) {
-                if (e.keyCode == 87) {
-                    PIXI.sound.play('wingSound');
-                    fallingDown = false;
-                    
-                    setTimeout(() => {
-                        fallingDown = true;
-                        PIXI.sound.play('swooshSound');
-                    }, 300);
-                }
+        let isDead = false;
+        let isStarted = false;
+
+        const startMessage = new PIXI.Sprite(resources.startMessage.texture);
+        startMessage.position.set((appWidth / 2) - (startMessage.width / 2), appHeight / 2 - 200);
+        mainContainer.addChild(startMessage);
+
+        window.addEventListener('mousedown', function (e) {
+            // button - 0 === left mouse click
+            if (e.button === 0 && fallingDown && !isDead && isStarted) {
+                bird.playSound('wing');
+                fallingDown = false;
+
+                setTimeout(() => {
+                    fallingDown = true;
+                    bird.playSound('swoosh');
+                }, 300);
+            } else if (e.button === 0 && !isStarted) {
+                isStarted = true;
+
+                startMessage.destroy();
+                mainContainer.removeChild(startMessage);
             }
         });
-        
-        let passedPipesCount = 0;
 
-        app.ticker.add(() => {
-            const birdHasFellDown = bird.yPosition() >= (appHeight - 100);
+        let passedPipesCount = 0;
+        const pipesMovementSpeed = 2;
+        let isGameOver = false;
+
+        app.ticker.add((delta) => {
+            const birdHasFellDown = bird.getY() >= (appHeight - 100);
 
             // sprite anchor is (0,0) by default
-            const overlappingPipe = pipes.find((pipe) => 
-                (((bird.xPosition() + bird.getWidth()) >= pipe.x) && (bird.xPosition() <= (pipe.x + pipe.width))) && 
-                    ((pipe.scale.y === 1 && (bird.yPosition() + bird.getHeight()) >= pipe.y) || 
-                        (pipe.scale.y === -1 && (bird.yPosition() <= pipe.y))));
-            
-                if (overlappingPipe || birdHasFellDown) {
-                    alert('game over');
-                }
+            const overlappingPipe = pipes.find((pipe) =>
+                (((bird.getX() + bird.getWidth()) >= pipe.x) && (bird.getX() <= (pipe.x + pipe.width))) &&
+                ((pipe.scale.y === 1 && (bird.getY() + bird.getHeight()) >= pipe.y) ||
+                    (pipe.scale.y === -1 && (bird.getY() <= pipe.y))));
 
-            pipes.forEach((pipe) => {
-                // TODO [GM]: Extract speed to a constant?
-                pipe.x -= 2;
+            if (overlappingPipe || birdHasFellDown) {
+                isDead = true;
+            }
 
-                if ((pipe.x + pipe.width) <= 0) {
-                    const newBottomPipe = pipes.shift();
-                    const newUpperPipe = pipes.shift();
-                    newUpperPipe.scale.y = -1;
+            if (!isDead && isStarted) {
+                pipes.forEach((pipe) => {
+                    pipe.x -= pipesMovementSpeed;
 
-                    const initialYCoordinate = utils.getRandomInt(appHeight - newBottomPipe.height, 350);
-                    newUpperPipe.y = initialYCoordinate - 150;
-                    newUpperPipe.x = pipes[pipes.length - 1].x + 200;
+                    if ((pipe.x + pipe.width) <= 0) {
+                        const newBottomPipe = pipes.shift();
+                        const newUpperPipe = pipes.shift();
+                        newUpperPipe.scale.y = -1;
 
-                    newBottomPipe.y = initialYCoordinate
-                    newBottomPipe.x = pipes[pipes.length - 1].x + 200;
+                        const initialYCoordinate = utils.getRandomInt(appHeight - newBottomPipe.height, 350);
+                        newUpperPipe.y = initialYCoordinate - 150;
+                        newUpperPipe.x = pipes[pipes.length - 1].x + 200;
 
-                    pipes.push(newBottomPipe);
-                    pipes.push(newUpperPipe);
+                        newBottomPipe.y = initialYCoordinate
+                        newBottomPipe.x = pipes[pipes.length - 1].x + 200;
 
-                    PIXI.sound.play('pointSound');
+                        pipes.push(newBottomPipe);
+                        pipes.push(newUpperPipe);
 
-                    passedPipesCount++;
+                        PIXI.sound.play('pointSound');
 
-                    score.forEach((scoreDigit) => {
-                        scoreDigit.destroy();
-                        mainContainer.removeChild(scoreDigit);
-                    });
+                        passedPipesCount++;
 
-                    score = generateScoreNumber(passedPipesCount, resources);
+                        const digits = score.getDigits();
+                        score.clearDigits();
 
-                    score.forEach((scoreDigit, index) => {
-                        mainContainer.addChild(scoreDigit);
-            
-                        scoreDigit.y = appHeight / 2 - 150;
-                        scoreDigit.x = appWidth / 2;
-
-                        if (index > 0) {
-                            scoreDigit.x += scoreDigit.width * index;
-                            
-                            if (passedPipesCount.toString().indexOf('1') > 0) {
-                                scoreDigit.x += 10;
-                            }
-                        }
-                    });
-                }
-            });
-
-            bird.setTexture('midFlapBird');
-
-            if (fallingDown) {
-                bird.incrementYPosition(3);
-                bird.setTexture('downFlapBird');
+                        const newDigits = (parseInt(digits.join('')) + 1).toString().split('');
+                        score.generateDigits(newDigits);
+                    }
+                });
             } else {
-                bird.decrementYPosition(5);
-                bird.setTexture('upFlapBird');
+                if (!isGameOver && isStarted) {
+                    isGameOver = true;
+                    score.clearDigits();
+
+                    const gameOverSignSprite = new PIXI.Sprite(resources.gameOverSign.texture);
+                    mainContainer.addChild(gameOverSignSprite);
+
+                    gameOverSignSprite.y = appHeight / 2 - 100;
+                    gameOverSignSprite.x = (appWidth / 2) - (gameOverSignSprite.width / 2);
+                }
+            }
+
+            if (!isDead && isStarted) {
+                if (fallingDown) {
+                    bird.incrementYPosition(3);
+                } else {
+                    bird.decrementYPosition(5);
+                }
+
+                bird.continueFlyingAnimation();
+            } else {
+                if (bird.getY() < floor.y && isStarted) {
+                    bird.incrementYPosition(3);
+                }
             }
         });
     });
-
-function generateScoreNumber(passedPipesCount, resources) {
-    const passedPipesCountDigits = passedPipesCount.toString().split('');
-
-    return passedPipesCountDigits.map((digit) => new PIXI.Sprite(resources[digit].texture));
-}
