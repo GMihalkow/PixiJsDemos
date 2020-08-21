@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import SOUND from "pixi-sound";
+import globalConstants from './globalConstants';
 
 // pixi sound doesn't work without this hack
 PIXI["s" + "o" + "u" + "n" + "d"] = SOUND;
@@ -30,7 +31,9 @@ export default class Bird {
 
         const sounds = {
             wing: PIXI.sound.Sound.from('/assets/audio/wing.wav'),
-            swoosh: PIXI.sound.Sound.from('/assets/audio/swoosh.wav')
+            swoosh: PIXI.sound.Sound.from('/assets/audio/swoosh.wav'),
+            hit: PIXI.sound.Sound.from('/assets/audio/hit.wav'),
+            die: PIXI.sound.Sound.from('/assets/audio/die.wav'),
         };
 
         this.playSound = (soundName) => {
@@ -54,8 +57,6 @@ export default class Bird {
         this.incrementXPosition = (x) => sprite.x += x;
 
         this.setPosition = (x, y) => sprite.position.set(x, y);
-
-        let flightPosition = 'Mid';
 
         const allowedFlightPositions = {
             'UpFlapBird': {
@@ -94,6 +95,10 @@ export default class Bird {
 
             sprite.texture = textures[birdColor + textureName];
         };
+    }
+
+    get isFallenDown() {
+        return this.getY() >= (globalConstants.appHeight - 100);
     }
 
     continueFlyingAnimation() {

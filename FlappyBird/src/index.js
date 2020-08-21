@@ -3,6 +3,7 @@ import SOUND from "pixi-sound";
 import Bird from './bird';
 import Score from './score';
 import utils from './utils';
+import globalConstants from './globalConstants';
 
 // pixi dev tools doesn't work without this
 window.PIXI = PIXI;
@@ -10,7 +11,7 @@ window.PIXI = PIXI;
 // pixi sound doesn't work without this hack
 PIXI["s" + "o" + "u" + "n" + "d"] = SOUND;
 
-const appHeight = 512;
+const appHeight = globalConstants.appHeight;
 const appWidth = window.innerWidth;
 
 const app = new PIXI.Application({
@@ -107,15 +108,13 @@ PIXI.Loader.shared
         let isGameOver = false;
 
         app.ticker.add((delta) => {
-            const birdHasFellDown = bird.getY() >= (appHeight - 100);
-
             // sprite anchor is (0,0) by default
             const overlappingPipe = pipes.find((pipe) =>
                 (((bird.getX() + bird.getWidth()) >= pipe.x) && (bird.getX() <= (pipe.x + pipe.width))) &&
-                ((pipe.scale.y === 1 && (bird.getY() + bird.getHeight()) >= pipe.y) ||
-                    (pipe.scale.y === -1 && (bird.getY() <= pipe.y))));
+                    ((pipe.scale.y === 1 && (bird.getY() + bird.getHeight()) >= pipe.y) ||
+                        (pipe.scale.y === -1 && (bird.getY() <= pipe.y))));
 
-            if (overlappingPipe || birdHasFellDown) {
+            if (overlappingPipe || bird.isFallenDown) {
                 isDead = true;
             }
 
@@ -152,6 +151,10 @@ PIXI.Loader.shared
             } else {
                 if (!isGameOver && isStarted) {
                     isGameOver = true;
+
+                    bird.playSound('hit');
+                    bird.playSound('die');
+                    
                     score.clearDigits();
 
                     const gameOverSignSprite = new PIXI.Sprite(resources.gameOverSign.texture);
