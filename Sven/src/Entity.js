@@ -2,12 +2,10 @@ import { AnimatedSprite, Loader } from 'pixi.js';
 import gsap from 'gsap';
 
 const DIRECTIONS = ['Up', 'Down', 'Left', 'Right'];
-const maxWalkAnimationsCount = 11;
 
 export default class Entity {
     constructor(animations) {
         this._animations = [];
-        this.direction;
 
         this.prepareAnimations(animations);
     }
@@ -46,6 +44,5 @@ export default class Entity {
         await gsap.to(this._sprite, { x: nextCordinates.x, y: nextCordinates.y, duration: 0.5 });
 
         this.isMoving = false;
-        // this.setDirection();
     }
 }
