@@ -1,9 +1,7 @@
-import { Container, Sprite, Texture } from 'pixi.js';
+import { Container, Sprite } from 'pixi.js';
 import Sven from './Sven';
-import Entity from './Entity';
+import Sheep from './Sheep';
 import Map from './Map';
-import svenAnimations from './svenAnimations';
-import sheepAnimations from './sheepAnimations';
 
 const DIRECTIONS = { w: 'Up', s: 'Down', a: 'Left', d: 'Right' };
 
@@ -14,7 +12,7 @@ const DIRECTIONS = { w: 'Up', s: 'Down', a: 'Left', d: 'Right' };
  */
 export default class Game extends Container {
   constructor() {
-    super();    
+    super();
   }
 
   async start() {
@@ -30,7 +28,7 @@ export default class Game extends Container {
   }
 
   createSven() {
-    this._sven = new Sven(svenAnimations);
+    this._sven = new Sven();
     this._sven.init(this._map.coordsFromPos(this._map.posById(this._map.IDS.SVEN)[0]));
 
     this.addChild(this._sven._sprite);
@@ -40,7 +38,7 @@ export default class Game extends Container {
     this._herd = this._map.posById(this._map.IDS.SHEEP).map((sheepPos) => {
       const initialSheepPosition = this._map.coordsFromPos(sheepPos);
       
-      const sheepEntity = new Entity(sheepAnimations);
+      const sheepEntity = new Sheep();
       sheepEntity.init(initialSheepPosition);
 
       sheepEntity.row = sheepPos.row;
@@ -59,7 +57,7 @@ export default class Game extends Container {
   }
 
   async onKeyDown({ key, code }) {
-    if (Object.keys(DIRECTIONS).includes(key)) {
+    if (Object.keys(DIRECTIONS).includes(key) && !this._sven.isHumping) {
       if (this._sven.isMoving) return;
 
       await this.svenWalk(key);
@@ -68,8 +66,10 @@ export default class Game extends Container {
     }
   }
 
-  onKeyUp({ key }) {
-    this._sven.setDirection();
+  onKeyUp() {
+    if (!this._sven.isHumping) {
+      this._sven.setDirection();
+    }
   }
 
   async svenWalk(pressedKey) {
@@ -100,12 +100,20 @@ export default class Game extends Container {
     if (isNextIndexASheep) {
       const sheep = this._herd.find((sh) => sh.row === nextPosition.row && sh.col === nextPosition.col);
 
-      if (sheep._direction === this._sven._direction && !this._sven._isHumping && sheep.humpedCount < 4) {
-        await this._sven.hump(sheep);
-      } else if (sheep.humpedCount >= 4) {
-        this._sven.setDirection();
-        sheep._sprite.visible = true;
-        // TODO [GM]: Implement Sheep dissapearing
+      if (sheep._direction === this._sven._direction && !this._sven.isHumping && sheep.humpedCount < 4) {
+        await this._sven.hump(sheep, async () => {
+          this._sven.setDirection();
+          
+          sheep._sprite.visible = true;
+          await sheep.disappear();
+          this._map.setTileOnMap({ row: sheep.row, col: sheep.col }, this._map.IDS.EMPTY);
+
+          const sheepIndex = this._herd.findIndex((sh) => sh.col === sheep.col && sheep.row === sh.row);
+
+          if (sheepIndex > -1) {
+            this._herd.splice(sheepIndex, 1);
+          }
+        });
       }
     }
   }
