@@ -1,5 +1,4 @@
 import { AnimatedSprite, Loader } from 'pixi.js';
-import gsap from 'gsap';
 
 const DIRECTIONS = ['Up', 'Down', 'Left', 'Right'];
 
@@ -33,16 +32,5 @@ export default class Entity {
             this._sprite.gotoAndStop(0);
             this._sprite.loop = false;
         }
-    }
-
-    async walk(nextCordinates) {
-        this._sprite.textures = this._animations['walk' + this._direction];
-        this._sprite.gotoAndPlay(0);
-        this._sprite.animationSpeed = 0.2;
-        this._sprite.loop = false;
-
-        await gsap.to(this._sprite, { x: nextCordinates.x, y: nextCordinates.y, duration: 0.5 });
-
-        this.isMoving = false;
     }
 }
