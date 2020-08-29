@@ -7,7 +7,7 @@ export default class Sheep extends Entity {
         super(sheepAnimations);
     }
 
-    async disappear() {
+    async disappear(callback) {
         await gsap.to(this._sprite, { alpha: 0.5, yoyo: true, repeat: 5 });
 
         this._sprite.textures = this._animations['disappear'];
@@ -16,6 +16,11 @@ export default class Sheep extends Entity {
 
         this._sprite.onComplete = () => {
             this._sprite.onComplete = null;
+
+            if (callback && typeof callback === 'function') {
+                callback();
+            }
+
             this._sprite.visible = false;
             this._sprite.destroy();
         }
