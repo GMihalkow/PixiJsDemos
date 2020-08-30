@@ -3,6 +3,7 @@ import Sven from './Sven';
 import Sheep from './Sheep';
 import Map from './Map';
 import Timer from './Timer';
+import Sound from './Sound';
 
 const DIRECTIONS = { w: 'Up', s: 'Down', a: 'Left', d: 'Right' };
 
@@ -14,6 +15,11 @@ const DIRECTIONS = { w: 'Up', s: 'Down', a: 'Left', d: 'Right' };
 export default class Game extends Container {
   constructor() {
     super();
+
+    this._backgroundMusic = new Sound('./src/assets/background.wav', true, 0.02);
+    this._backgroundMusic.play();
+
+    this._pointSound = new Sound('./src/assets/point.mp3', false, 0.2);
 
     this._gameHasEnded = false;
     this._map = new Map();
@@ -60,6 +66,11 @@ export default class Game extends Container {
       }
 
       timerNumbers.text = timerNextValue;
+
+      if (parseInt(scoreBoardNumbers.text) < _this.humpedSheepCount) {
+        _this._pointSound.play(); 
+      }
+
       scoreBoardNumbers.text = '0' + _this.humpedSheepCount.toString();
 
       if (timer.remainingSecondsCount < 0 && _this._gameHasEnded && _this.children.length > 1) {
@@ -101,7 +112,7 @@ export default class Game extends Container {
 
   async onKeyDown({ key, code }) {
     if (Object.keys(DIRECTIONS).includes(key) && !this._sven.isHumping) {
-      if (this._sven.isMoving) return;
+      if (this._sven.isWalking) return;
 
       await this.svenWalk(key);
     } else if (code.toLowerCase() === 'space') {
@@ -124,7 +135,7 @@ export default class Game extends Container {
       return;
     }
     
-    this._sven.isMoving = true;
+    this._sven.isWalking = true;
     
     this._map.setTileOnMap(currentPosition, this._map.IDS.EMPTY);
     this._map.setTileOnMap(nextPosition, this._map.IDS.SVEN);
@@ -173,5 +184,15 @@ export default class Game extends Container {
 
     const endScreenSprite = new Sprite(Loader.shared.resources['endBackground'].texture);
     this.addChild(endScreenSprite);
+    
+    this._backgroundMusic.stop();
+
+    if (this._herd.length === 0) {
+      const winSound = new Sound('./src/assets/win.mp3', false, 0.2);
+      winSound.play();
+    } else {
+      const loseSound = new Sound('./src/assets/lose.wav', false, 0.2);
+      loseSound.play();
+    }
   }
 }
