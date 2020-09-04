@@ -16,18 +16,12 @@ export default class Bird {
         let birdColor = allowedColors[color] ? color : 'blue';
 
         const textures = {
-            blueUpFlapBird: PIXI.Texture.from('/assets/sprites/bluebird-upflap.png'),
-            blueMidFlapBird: PIXI.Texture.from('/assets/sprites/bluebird-midflap.png'),
-            blueDownFlapBird: PIXI.Texture.from('/assets/sprites/bluebird-downflap.png'),
-            redUpFlapBird: PIXI.Texture.from('/assets/sprites/redbird-upflap.png'),
-            redMidFlapBird: PIXI.Texture.from('/assets/sprites/redbird-midflap.png'),
-            redDownFlapBird: PIXI.Texture.from('/assets/sprites/redbird-downflap.png'),
-            yellowUpFlapBird: PIXI.Texture.from('/assets/sprites/yellowbird-upflap.png'),
-            yellowMidFlapBird: PIXI.Texture.from('/assets/sprites/yellowbird-midflap.png'),
-            yellowDownFlapBird: PIXI.Texture.from('/assets/sprites/yellowbird-downflap.png')
+            upFlapBird: PIXI.Texture.from('/assets/sprites/' + birdColor.toLowerCase() + 'bird-upflap.png'),
+            midFlapBird: PIXI.Texture.from('/assets/sprites/' + birdColor.toLowerCase() + 'bird-midflap.png'),
+            downFlapBird: PIXI.Texture.from('/assets/sprites/' + birdColor.toLowerCase() + 'bird-downflap.png')
         };
 
-        const currentBirdColorTextures = Object.keys(textures).filter((key) => key.startsWith(birdColor)).map((key) => textures[key]);
+        const currentBirdColorTextures = Object.keys(textures).map((key) => textures[key]);
         const sprite = new PIXI.AnimatedSprite(currentBirdColorTextures);
         sprite.gotoAndPlay(0);
 
@@ -59,21 +53,6 @@ export default class Bird {
         this.incrementXPosition = (x) => sprite.x += x;
 
         this.setPosition = (x, y) => sprite.position.set(x, y);
-
-        const allowedFlightPositions = {
-            'UpFlapBird': {
-                order: 0,
-                enabled: false
-            },
-            'MidFlapBird': {
-                order: 1,
-                enabled: true
-            },
-            'DownFlapBird': {
-                order: 2,
-                enabled: false
-            }
-        };
 
         this.stopFlying = () => {
             sprite.stop();

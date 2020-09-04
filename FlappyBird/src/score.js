@@ -1,5 +1,4 @@
 import * as PIXI from 'pixi.js';
-import { Sprite } from '@pixi/sprite';
 
 export default class Score {
     constructor(x, y) {
