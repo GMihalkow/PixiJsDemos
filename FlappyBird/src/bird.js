@@ -27,7 +27,9 @@ export default class Bird {
             yellowDownFlapBird: PIXI.Texture.from('/assets/sprites/yellowbird-downflap.png')
         };
 
-        const sprite = new PIXI.Sprite(textures[birdColor + 'MidFlapBird']);
+        const currentBirdColorTextures = Object.keys(textures).filter((key) => key.startsWith(birdColor)).map((key) => textures[key]);
+        const sprite = new PIXI.AnimatedSprite(currentBirdColorTextures);
+        sprite.gotoAndPlay(0);
 
         const sounds = {
             wing: PIXI.sound.Sound.from('/assets/audio/wing.wav'),
@@ -73,48 +75,12 @@ export default class Bird {
             }
         };
 
-        this.getAllowedFlightPositions = () => allowedFlightPositions;
-        this.currentFlightPositionOrder = () => allowedFlightPositions[Object.keys(allowedFlightPositions).find((key) => allowedFlightPositions[key].enabled)].order;
-        this.setFlightPosition = (order) => {
-            if (typeof order !== 'number') {
-                throw new Error('Order must be a number.');
-            }
-
-            Object.keys(allowedFlightPositions).forEach((key) => allowedFlightPositions[key].enabled = false);
-
-            const flightPositionKey = Object.keys(allowedFlightPositions).find((key) => allowedFlightPositions[key].order === order);
-            if (allowedFlightPositions[flightPositionKey]) {
-                allowedFlightPositions[flightPositionKey].enabled = true;
-            }
-        };
-
-        this.setTexture = (textureName) => {
-            if (!Object.keys(textures).includes(birdColor + textureName)) {
-                throw new Error('Invalid texture name.');
-            }
-
-            sprite.texture = textures[birdColor + textureName];
-        };
+        this.stopFlying = () => {
+            sprite.stop();
+        }
     }
 
     get isFallenDown() {
         return this.getY() >= (globalConstants.appHeight - 100);
-    }
-
-    continueFlyingAnimation() {
-        let order = this.currentFlightPositionOrder();
-
-        if (order >= 2)  {
-            order = 0;
-        } else {
-            order++;
-        }
-
-        this.setFlightPosition(order);
-
-        const allowedFlightPositions = this.getAllowedFlightPositions();
-        const currentPosition = Object.keys(allowedFlightPositions).find((key) => allowedFlightPositions[key].enabled);
-
-        this.setTexture(currentPosition);
     }
 }
