@@ -1,23 +1,19 @@
 import * as PIXI from 'pixi.js';
-import SOUND from "pixi-sound";
+import { Howl } from 'howler';
 import Bird from './bird';
 import Score from './score';
 import utils from './utils';
-import globalConstants from './globalConstants';
+import config from './config';
 
 // pixi dev tools doesn't work without this
 window.PIXI = PIXI;
 
-// pixi sound doesn't work without this hack
-PIXI["s" + "o" + "u" + "n" + "d"] = SOUND;
-
-const appHeight = globalConstants.appHeight;
-const appWidth = window.innerWidth;
+const pointSound = new Howl({ src: ['/assets/audio/point.wav'] })
 
 window.addEventListener('DOMContentLoaded', function () {
     const app = new PIXI.Application({
-        width: appWidth,
-        height: appHeight,
+        width: config.app.width,
+        height: config.app.height,
         backgroundColor: 0xFFFFFF
     });
 
@@ -32,26 +28,25 @@ window.addEventListener('DOMContentLoaded', function () {
         .add('floor', '/assets/sprites/base.png')
         .add('startMessage', '/assets/sprites/message.png')
         .add('gameOverSign', '/assets/sprites/gameover.png')
-        .add('pointSound', '/assets/audio/point.wav')
         .load((loader, resources) => {
             const mainContainer = new PIXI.Container();
             app.stage.addChild(mainContainer);
 
-            const bg = new PIXI.TilingSprite(resources.bg.texture, appWidth, appHeight);
+            const bg = new PIXI.TilingSprite(resources.bg.texture, config.app.width, config.app.height);
             mainContainer.addChild(bg);
 
             const floorContainer = new PIXI.Container();
             app.stage.addChild(floorContainer);
 
-            const floor = new PIXI.TilingSprite(resources.floor.texture, appWidth, 100);
-            floor.y = appHeight - 100;
+            const floor = new PIXI.TilingSprite(resources.floor.texture, config.app.width, 100);
+            floor.y = config.app.height - 100;
             floorContainer.addChild(floor);
 
             const bird = new Bird('red');
 
-            mainContainer.addChild(bird.getSprite());
+            mainContainer.addChild(bird);
 
-            bird.setPosition(20, appHeight / 2);
+            bird.setPosition(20, config.app.height / 2);
 
             let initialPipeXCoordinate = 200;
             const pipes = [];
@@ -61,7 +56,7 @@ window.addEventListener('DOMContentLoaded', function () {
                 const bottomPipe = new PIXI.Sprite(resources.greenPipe.texture);
                 mainContainer.addChild(bottomPipe);
 
-                const pipeStartYCoordinate = utils.getRandomInt(appHeight - bottomPipe.height, 350);
+                const pipeStartYCoordinate = utils.getRandomInt(config.app.height - bottomPipe.height, 350);
                 bottomPipe.position.set(initialPipeXCoordinate, pipeStartYCoordinate);
 
                 const upperPipe = new PIXI.Sprite(resources.greenPipe.texture);
@@ -75,7 +70,7 @@ window.addEventListener('DOMContentLoaded', function () {
                 pipes.push(upperPipe);
             }
 
-            const score = new Score(appWidth / 2, appHeight / 2 - 150);
+            const score = new Score(config.app.width / 2, config.app.height / 2 - 150);
             app.stage.addChild(score.getContainer());
 
             let fallingDown = true;
@@ -83,7 +78,7 @@ window.addEventListener('DOMContentLoaded', function () {
             let isStarted = false;
 
             const startMessage = new PIXI.Sprite(resources.startMessage.texture);
-            startMessage.position.set((appWidth / 2) - (startMessage.width / 2), appHeight / 2 - 200);
+            startMessage.position.set((config.app.width / 2) - (startMessage.width / 2), config.app.height / 2 - 200);
             mainContainer.addChild(startMessage);
 
             window.addEventListener('mousedown', function (e) {
@@ -111,9 +106,9 @@ window.addEventListener('DOMContentLoaded', function () {
             app.ticker.add(() => {
                 // sprite anchor is (0,0) by default
                 const overlappingPipe = pipes.find((pipe) =>
-                    (((bird.getX() + bird.getWidth()) >= pipe.x) && (bird.getX() <= (pipe.x + pipe.width))) &&
-                    ((pipe.scale.y === 1 && (bird.getY() + bird.getHeight()) >= pipe.y) ||
-                        (pipe.scale.y === -1 && (bird.getY() <= pipe.y))));
+                    (((bird.x + bird.width) >= pipe.x) && (bird.x <= (pipe.x + pipe.width))) &&
+                    ((pipe.scale.y === 1 && (bird.y + bird.height) >= pipe.y) ||
+                        (pipe.scale.y === -1 && (bird.y <= pipe.y))));
 
                 if (overlappingPipe || bird.isFallenDown) {
                     isDead = true;
@@ -129,7 +124,7 @@ window.addEventListener('DOMContentLoaded', function () {
                             const newUpperPipe = pipes.shift();
                             newUpperPipe.scale.y = -1;
 
-                            const initialYCoordinate = utils.getRandomInt(appHeight - newBottomPipe.height, 350);
+                            const initialYCoordinate = utils.getRandomInt(config.app.height - newBottomPipe.height, 350);
                             newUpperPipe.y = initialYCoordinate - 150;
                             newUpperPipe.x = pipes[pipes.length - 1].x + 200;
 
@@ -139,7 +134,7 @@ window.addEventListener('DOMContentLoaded', function () {
                             pipes.push(newBottomPipe);
                             pipes.push(newUpperPipe);
 
-                            PIXI.sound.play('pointSound');
+                            pointSound.play();
 
                             passedPipesCount++;
 
@@ -162,8 +157,8 @@ window.addEventListener('DOMContentLoaded', function () {
                         const gameOverSignSprite = new PIXI.Sprite(resources.gameOverSign.texture);
                         mainContainer.addChild(gameOverSignSprite);
 
-                        gameOverSignSprite.y = appHeight / 2 - 100;
-                        gameOverSignSprite.x = (appWidth / 2) - (gameOverSignSprite.width / 2);
+                        gameOverSignSprite.y = config.app.height / 2 - 100;
+                        gameOverSignSprite.x = (config.app.width / 2) - (gameOverSignSprite.width / 2);
                     }
                 }
 
@@ -174,7 +169,7 @@ window.addEventListener('DOMContentLoaded', function () {
                         bird.decrementYPosition(5);
                     }
                 } else {
-                    if (bird.getY() < floor.y && isStarted) {
+                    if (bird.y < floor.y && isStarted) {
                         bird.incrementYPosition(3);
                     }
                 }
